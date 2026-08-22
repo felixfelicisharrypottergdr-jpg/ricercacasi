@@ -1,3 +1,4 @@
+<!-- Revisione v26: riepilogo iniziale con valori migliori e frasi di vantaggio evidenziati in grassetto -->
 <!-- Revisione v25: riepilogo iniziale copiabile con confronto parametri e difficoltà stimata -->
 <!-- Revisione v24: Fasi del Caso organizzate come pagine successive; navigazione Configurazione/Fase I/II/III e ripresa intelligente compatibile -->
 <!-- Revisione v23: PNG Rivale selezionabile automaticamente come controparte + riapertura sessione su refresh con ripresa intelligente -->
@@ -554,6 +555,7 @@
 #ricerca-casi .initial-summary-item b {color:var(--navy)}
 #ricerca-casi .initial-summary-section {margin:18px 0 8px;color:var(--navy);font-family:var(--serif);font-size:1.08rem;font-weight:700}
 #ricerca-casi .initial-summary-list {margin:6px 0 12px;padding-left:20px;color:#594349;font-size:14px;line-height:1.65}
+#ricerca-casi .initial-summary-list strong {color:var(--navy);font-weight:800}
 #ricerca-casi .initial-difficulty {margin:16px 0;padding:14px 16px;border:1px solid rgba(125,23,52,.22);border-left:4px solid var(--navy);border-radius:8px;background:#F9F2EE;color:#594349;font-size:14px;line-height:1.6}
 #ricerca-casi .initial-difficulty strong {color:var(--navy)}
 #ricerca-casi .summary-copy-wrap {margin-top:16px}
@@ -948,8 +950,18 @@ function buildInitialSummaryData(){
  copy.push('[spoiler=Situazione iniziale del Caso]');rows.forEach(function(r){copy.push('<b>'+r[0]+':</b> '+r[1]);});
  if(reps){
   var keys=CASE_STAT_KEYS[c.key]||[];html.push('<div class="initial-summary-section">Confronto iniziale dei Parametri</div><ul class="initial-summary-list">');copy.push('','<b>Confronto iniziale dei Parametri</b>');
-  keys.forEach(function(k){var lv=summaryStatText(reps.left,k,c),rv=summaryStatText(reps.right,k,c),adv=reps.left[k]===reps.right[k]?'parità':('vantaggio '+(reps.left[k]>reps.right[k]?reps.left.nome:reps.right.nome));html.push('<li><b>'+summaryEscape(statLabel(k))+':</b> '+summaryEscape(reps.left.nome)+' '+summaryEscape(lv)+' · '+summaryEscape(reps.right.nome)+' '+summaryEscape(rv)+' → '+summaryEscape(adv)+'</li>');copy.push('• '+statLabel(k)+': '+reps.left.nome+' '+lv+' · '+reps.right.nome+' '+rv+' → '+adv);});html.push('</ul>');
-  var pws=SUMMARY_PHASE_WEIGHTS[c.key]||[];if(pws.length){html.push('<div class="initial-summary-section">Impatto previsto sulle Fasi</div><ul class="initial-summary-list">');copy.push('','<b>Impatto previsto sulle Fasi</b>');pws.forEach(function(w,i){var t=summaryTendency(summaryWeightedScore(reps.left,reps.right,w,c),reps.left,reps.right);html.push('<li><b>Fase '+phaseRoman(i)+':</b> '+summaryEscape(t)+'</li>');copy.push('• Fase '+phaseRoman(i)+': '+t);});html.push('</ul>');}
+  keys.forEach(function(k){
+   var lv=summaryStatText(reps.left,k,c),rv=summaryStatText(reps.right,k,c),leftWins=reps.left[k]>reps.right[k],rightWins=reps.right[k]>reps.left[k],adv=!leftWins&&!rightWins?'parità':('vantaggio '+(leftWins?reps.left.nome:reps.right.nome));
+   var leftHtml=summaryEscape(reps.left.nome)+' '+(leftWins?'<strong>'+summaryEscape(lv)+'</strong>':summaryEscape(lv));
+   var rightHtml=summaryEscape(reps.right.nome)+' '+(rightWins?'<strong>'+summaryEscape(rv)+'</strong>':summaryEscape(rv));
+   var advHtml=(leftWins||rightWins)?'<strong>'+summaryEscape(adv)+'</strong>':summaryEscape(adv);
+   var leftCopy=reps.left.nome+' '+(leftWins?'<b>'+lv+'</b>':lv);
+   var rightCopy=reps.right.nome+' '+(rightWins?'<b>'+rv+'</b>':rv);
+   var advCopy=(leftWins||rightWins)?'<b>'+adv+'</b>':adv;
+   html.push('<li><b>'+summaryEscape(statLabel(k))+':</b> '+leftHtml+' · '+rightHtml+' → '+advHtml+'</li>');
+   copy.push('• '+statLabel(k)+': '+leftCopy+' · '+rightCopy+' → '+advCopy);
+  });html.push('</ul>');
+  var pws=SUMMARY_PHASE_WEIGHTS[c.key]||[];if(pws.length){html.push('<div class="initial-summary-section">Impatto previsto sulle Fasi</div><ul class="initial-summary-list">');copy.push('','<b>Impatto previsto sulle Fasi</b>');pws.forEach(function(w,i){var t=summaryTendency(summaryWeightedScore(reps.left,reps.right,w,c),reps.left,reps.right),isAdv=t.indexOf('vantaggio ')===0;html.push('<li><b>Fase '+phaseRoman(i)+':</b> '+(isAdv?'<strong>'+summaryEscape(t)+'</strong>':summaryEscape(t))+'</li>');copy.push('• Fase '+phaseRoman(i)+': '+(isAdv?'<b>'+t+'</b>':t));});html.push('</ul>');}
  }
  var diff=null;if(hero&&opp)diff=summaryDifficultyForConflict(hero,opp,c);else if(!reps)diff=summaryDifficultySolo(c);
  if(diff){html.push('<div class="initial-difficulty"><strong>Difficoltà iniziale stimata'+(hero&&opp?' per '+summaryEscape(hero.nome):'')+': '+summaryEscape(diff.level)+'</strong><br>'+summaryEscape(diff.reason)+' La stima fotografa soltanto la configurazione iniziale: bonus, malus e risultati ottenuti durante le Fasi possono cambiare il quadro.</div>');copy.push('','<b>Difficoltà iniziale stimata'+(hero&&opp?' per '+hero.nome:'')+':</b> '+diff.level, diff.reason+' La stima fotografa soltanto la configurazione iniziale: bonus, malus e risultati ottenuti durante le Fasi possono cambiare il quadro.');}
