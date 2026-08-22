@@ -1,3 +1,4 @@
+<!-- Revisione v25: riepilogo iniziale copiabile con confronto parametri e difficoltà stimata -->
 <!-- Revisione v24: Fasi del Caso organizzate come pagine successive; navigazione Configurazione/Fase I/II/III e ripresa intelligente compatibile -->
 <!-- Revisione v23: PNG Rivale selezionabile automaticamente come controparte + riapertura sessione su refresh con ripresa intelligente -->
 <!-- Revisione v22: ripresa intelligente verificata + fix runtime Inchiesta/Redazione; include Prestigio PNG 11+1d60, copia stabile e popup locale -->
@@ -547,6 +548,17 @@
 #ricerca-casi #case-workspace.phase-session-view #tabs {display:none!important}
 #ricerca-casi #case-workspace.phase-session-view .case-module .phase {display:none!important}
 #ricerca-casi #case-workspace.phase-session-view .case-module .phase.phase-page-active {display:block!important}
+#ricerca-casi #case-workspace.phase-session-view #initial-summary-card {display:none!important}
+#ricerca-casi .initial-summary-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 18px;margin:8px 0 16px}
+#ricerca-casi .initial-summary-item {padding:11px 13px;border:1px solid rgba(125,23,52,.18);border-radius:8px;background:#FFFDFC;color:#594349;font-size:14px;line-height:1.5}
+#ricerca-casi .initial-summary-item b {color:var(--navy)}
+#ricerca-casi .initial-summary-section {margin:18px 0 8px;color:var(--navy);font-family:var(--serif);font-size:1.08rem;font-weight:700}
+#ricerca-casi .initial-summary-list {margin:6px 0 12px;padding-left:20px;color:#594349;font-size:14px;line-height:1.65}
+#ricerca-casi .initial-difficulty {margin:16px 0;padding:14px 16px;border:1px solid rgba(125,23,52,.22);border-left:4px solid var(--navy);border-radius:8px;background:#F9F2EE;color:#594349;font-size:14px;line-height:1.6}
+#ricerca-casi .initial-difficulty strong {color:var(--navy)}
+#ricerca-casi .summary-copy-wrap {margin-top:16px}
+#ricerca-casi .summary-copy-wrap .bb-box {margin-top:10px;max-height:260px;overflow:auto}
+@media(max-width:700px){#ricerca-casi .initial-summary-grid{grid-template-columns:1fr}}
 #ricerca-casi #case-workspace.phase-session-view .case-module .card-body > .adulti-note:first-child {margin-top:0}
 @media(max-width:760px){#ricerca-casi .case-phase-nav-buttons{grid-template-columns:1fr 1fr}}
 @media(max-width:480px){#ricerca-casi .case-phase-nav-buttons{grid-template-columns:1fr}}
@@ -684,6 +696,19 @@
  <!-- TABS --> 
  <div class="tabs" id="tabs"></div> 
  <div id="cases"></div> 
+ <div class="card" id="initial-summary-card" style="display:none">
+  <div class="card-head"><span class="tag">Riepilogo</span><h2>Situazione iniziale del Caso</h2></div>
+  <div class="card-body">
+   <p class="hint" style="margin-top:0">Quadro sintetico della configurazione prima di iniziare la Fase I: mostra gli elementi già determinati, mette a confronto i Parametri realmente utili al Caso e fornisce una stima orientativa della difficoltà iniziale.</p>
+   <div id="initial-summary-content"></div>
+   <div class="summary-copy-wrap">
+    <div class="small-note">Puoi copiare questo riepilogo nello spoiler del post. Il testo usa i codici ForumFree già adottati dal GDR, con <code>&lt;b&gt;...&lt;/b&gt;</code> per il grassetto.</div>
+    <div class="bb-box" id="initial-summary-bb"></div>
+    <button class="copy-btn" id="btn-copy-initial-summary" type="button" data-session-control="1">Copia riepilogo per il post</button>
+    <button class="add-btn alt" id="btn-summary-phase1" type="button" data-session-control="1">Vai alla Fase I</button>
+   </div>
+  </div>
+ </div>
  <p class="footer-note">Fascicolo digitale a uso dei Difensori del Wizengamot · i tiri vanno 
 sempre effettuati sul forum con l'apposito tag dado copiabile.</p>
  </div><!-- /case-workspace -->
@@ -852,6 +877,88 @@ function syncParticipantBox(){var v=participantValidation(); if(!UI.participantB
 function newPG(tipo){var p={id:uid(),tipo:tipo,nome:tipo==='png'?'Difensore Rivale (PNG)':'Nuovo Difensore',squadra:''};STATKEYS.forEach(function(s){p[s.k]=null;});return p;} 
 function prestigioBonus(v){if(!Number.isFinite(v)){return null;}if(v>=100){return 20;}if(v>=71){return 15;}if(v>=37){return 10;}return 5;} 
 function prestigioFascia(v){if(!Number.isFinite(v)){return '—';}if(v>=100){return 'Veterano';}if(v>=71){return 'Notevole';}if(v>=37){return 'Esperto';}return 'Neo Difensore';} 
+
+function statLabel(k){for(var i=0;i<STATKEYS.length;i++){if(STATKEYS[i].k===k)return STATKEYS[i].l;}return k;}
+function summaryEscape(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function summaryRelevantParty(c){
+ if(!c)return [];
+ if(c.key==='patteggiamento'||c.key==='processo'){
+  var r=STATE.caseRepresentatives[c.key]||{},d=pgById(r.d),a=pgById(r.a),out=[];if(d)out.push(d);if(a&&(!d||a.id!==d.id))out.push(a);return out;
+ }
+ if(c.key==='mediazione'){
+  var m=STATE.caseRepresentatives.mediazione||{},aa=pgById(m.a),bb=pgById(m.b),arr=[];
+  realDefenders().forEach(function(p){if((p.squadra==='parteA'||p.squadra==='parteB')&&arr.indexOf(p)===-1)arr.push(p);});
+  [aa,bb].forEach(function(p){if(p&&arr.indexOf(p)===-1)arr.push(p);});return arr;
+ }
+ return realDefenders();
+}
+function summaryRepresentatives(c){
+ if(!c)return null;var r=STATE.caseRepresentatives[c.key]||{};
+ if(c.key==='patteggiamento'||c.key==='processo'){var d=pgById(r.d),a=pgById(r.a);return d&&a?{left:d,right:a,leftLabel:'Difesa',rightLabel:'Accusa'}:null;}
+ if(c.key==='mediazione'){var pa=pgById(r.a),pb=pgById(r.b);return pa&&pb?{left:pa,right:pb,leftLabel:'Parte A',rightLabel:'Parte B'}:null;}
+ return null;
+}
+function summaryStatsComplete(c){var list=summaryRelevantParty(c),keys=CASE_STAT_KEYS[c.key]||[];if(!list.length)return false;for(var i=0;i<list.length;i++){for(var j=0;j<keys.length;j++){if(!Number.isFinite(list[i][keys[j]]))return false;}}return true;}
+function summaryConfigurationReady(){
+ var c=activeCase();if(!c||!STATE.caseLocked)return false;
+ var pv=participantValidation(),cv=caseParticipantValidation(c.key);if(!pv.ok||!cv.ok)return false;
+ if(c.key==='mediazione'&&!STATE.mediaMode)return false;if(c.key==='inchiesta'&&!STATE.inchiestaSide)return false;
+ if(caseNeedsCond()&&!STATE.cond)return false;if(caseNeedsGrav()&&!applicableAssistito()&&!STATE.grav)return false;
+ if((c.key==='patteggiamento'||c.key==='processo'||c.key==='mediazione')&&!summaryRepresentatives(c))return false;
+ return summaryStatsComplete(c);
+}
+function summarySideMod(pg,c){
+ if(!pg||!c)return 0;
+ if(c.key==='patteggiamento')return pg.squadra==='difesa'?(requiredCondForSide('difesa')||0):(pg.squadra==='accusa'?(requiredGravForSide('accusa')||0):0);
+ if(c.key==='processo')return pg.squadra==='difesa'?(requiredCondForSide('difesa')||0):(pg.squadra==='accusa'?((requiredCondForSide('accusa')||0)+(requiredGravForSide('accusa')||0)):0);
+ if(c.key==='mediazione'){if(STATE.mediaMode==='senza')return 0;return pg.squadra==='parteA'?(requiredCondForSide('difesa')||0):(pg.squadra==='parteB'?(requiredGravForSide('accusa')||0):0);}
+ return 0;
+}
+var SUMMARY_WEIGHTS={
+ patteggiamento:{volonta:2,acume:1,dialettica:3,persuasore:2,prestigio:2},
+ processo:{volonta:2,acume:3,dialettica:3,persuasore:2,leader:1,popolarita:1,prestigio:3},
+ mediazione:{volonta:3,dialettica:3,persuasore:2,prestigio:2}
+};
+var SUMMARY_PHASE_WEIGHTS={
+ patteggiamento:[{dialettica:3},{volonta:2,acume:1,dialettica:2,persuasore:2},{volonta:3,dialettica:2,persuasore:2,prestigio:2}],
+ processo:[{acume:3,volonta:1,dialettica:1,popolarita:1,prestigio:2},{acume:2,volonta:2,dialettica:3,persuasore:2,leader:1,prestigio:2},{volonta:3,dialettica:3,persuasore:2,leader:2,prestigio:2}],
+ mediazione:[{volonta:2,dialettica:2,persuasore:2},{volonta:2,dialettica:2,prestigio:2},{volonta:2,dialettica:2,persuasore:2}]
+};
+function summaryWeightedScore(a,b,weights,c){var score=0,max=0;Object.keys(weights||{}).forEach(function(k){var w=weights[k],av=a[k],bv=b[k];if(!Number.isFinite(av)||!Number.isFinite(bv))return;max+=w;if(av>bv)score+=w;else if(av<bv)score-=w;});var md=summarySideMod(a,c)-summarySideMod(b,c);if(md>0)score+=Math.min(2,Math.abs(md)*.5);else if(md<0)score-=Math.min(2,Math.abs(md)*.5);max+=2;return max?score/max:0;}
+function summaryTendency(v,a,b){if(v>.16)return 'vantaggio '+a.nome;if(v<-.16)return 'vantaggio '+b.nome;return 'situazione equilibrata';}
+function summaryDifficultyForConflict(hero,opp,c){var v=summaryWeightedScore(hero,opp,SUMMARY_WEIGHTS[c.key],c),level=v>=.28?'Facile':(v<=-.28?'Difficile':'Media');var wins=[],losses=[];(CASE_STAT_KEYS[c.key]||[]).forEach(function(k){if(hero[k]>opp[k])wins.push(statLabel(k));else if(hero[k]<opp[k])losses.push(statLabel(k));});var reason='I vantaggi sono distribuiti fra le due parti.';if(level==='Facile')reason=hero.nome+' parte con un vantaggio complessivo nei Parametri più ricorrenti'+(wins.length?' ('+wins.slice(0,3).join(', ')+')':'')+'.';if(level==='Difficile')reason=opp.nome+' parte con un vantaggio complessivo nei Parametri più ricorrenti'+(losses.length?' ('+losses.slice(0,3).join(', ')+')':'')+'.';return {level:level,reason:reason,score:v};}
+function summarySoloThreshold(c,p){
+ var t=null,faces=null;
+ if(c.key==='appello'){faces=50;t=p.acume+floorDiv(p.prestigio,4)+(requiredCondForSide('difesa')||0);}
+ else if(c.key==='custodia'){faces=50;t=p.volonta+p.persuasore+p.dialettica+(requiredCondForSide('difesa')||0);}
+ else if(c.key==='inchiesta'){faces=40;var m=STATE.inchiestaSide==='difesa'?(requiredCondForSide('difesa')||0):(requiredGravForSide('accusa')||0);t=p.volonta+p.dialettica+p.persuasore+m;}
+ else if(c.key==='redazione'){faces=35;t=p.acume;}
+ return Number.isFinite(t)&&faces?Math.max(0,Math.min(1,t/faces)):null;
+}
+function summaryDifficultySolo(c){var ds=realDefenders(),vals=[];ds.forEach(function(p){var x=summarySoloThreshold(c,p);if(Number.isFinite(x))vals.push(x);});if(!vals.length)return null;var avg=vals.reduce(function(a,b){return a+b;},0)/vals.length;var level=avg>=.68?'Facile':(avg<=.38?'Difficile':'Media');return {level:level,reason:'Stima basata sulla soglia iniziale della Fase I rispetto al dado previsto; gli esiti delle Fasi successive possono modificarla.',score:avg};}
+function summaryContextRows(c){var rows=[];rows.push(['Caso',c.nome]);if(c.key==='mediazione')rows.push(['Tipo di controversia',STATE.mediaMode==='reato'?'Con reato / Assistito accusato':'Senza reato']);if(c.key==='inchiesta')rows.push(['Linea dell’Inchiesta',STATE.inchiestaSide==='difesa'?'Difesa':'Accusa']);if(caseNeedsCond()&&STATE.cond)rows.push(['Assistito',STATE.cond.label+' (Difesa '+signed(STATE.cond.difesa)+' · Accusa '+signed(STATE.cond.accusa)+')']);if(caseNeedsGrav()){var g=effectiveGrav();if(g)rows.push(['Gravità',g.label+' (Accusa '+signed(g.accusa)+')'+(applicableAssistito()?' · automatica per la presenza dell’Assistito':'')]);}return rows;}
+function summarySupportRows(){var out=[];STATE.adulti.forEach(function(a){if(!a.ruolo)return;var p=pgById(a.assegnatoA);if(!p)return;out.push(a.nome+' — '+(a.ruolo==='assistito'?'Assistito':a.ruolo==='testimone'?'Testimone / Parte Terza':a.ruolo==='verbalizzante'?'Verbalizzante':a.ruolo==='onorevole'?'Onorevole':'Amico a supporto')+' → '+p.nome);});return out;}
+function summaryStatText(p,k,c){var v=p[k],txt=String(v);if(k==='prestigio')txt+=' ('+prestigioFascia(v)+(c.key==='patteggiamento'?' · Bonus '+signed(prestigioBonus(v)):'')+')';return txt;}
+function buildInitialSummaryData(){
+ var c=activeCase();if(!summaryConfigurationReady())return null;var rows=summaryContextRows(c),reps=summaryRepresentatives(c),hero=realDefenders()[0]||null,opp=null,copy=[],html=[];
+ if(reps){rows.push([reps.leftLabel,reps.left.nome+(reps.left.tipo==='png'?' (PNG)':'')]);rows.push([reps.rightLabel,reps.right.nome+(reps.right.tipo==='png'?' (PNG)':'')]);if(hero){opp=reps.left.id===hero.id?reps.right:(reps.right.id===hero.id?reps.left:null);}}
+ else{rows.push(['Difensori',realDefenders().map(function(p){return p.nome;}).join(', ')]);}
+ var supports=summarySupportRows();if(supports.length)rows.push(['Supporti',supports.join(' · ')]);
+ html.push('<div class="initial-summary-grid">');rows.forEach(function(r){html.push('<div class="initial-summary-item"><b>'+summaryEscape(r[0])+':</b> '+summaryEscape(r[1])+'</div>');});html.push('</div>');
+ copy.push('[spoiler=Situazione iniziale del Caso]');rows.forEach(function(r){copy.push('<b>'+r[0]+':</b> '+r[1]);});
+ if(reps){
+  var keys=CASE_STAT_KEYS[c.key]||[];html.push('<div class="initial-summary-section">Confronto iniziale dei Parametri</div><ul class="initial-summary-list">');copy.push('','<b>Confronto iniziale dei Parametri</b>');
+  keys.forEach(function(k){var lv=summaryStatText(reps.left,k,c),rv=summaryStatText(reps.right,k,c),adv=reps.left[k]===reps.right[k]?'parità':('vantaggio '+(reps.left[k]>reps.right[k]?reps.left.nome:reps.right.nome));html.push('<li><b>'+summaryEscape(statLabel(k))+':</b> '+summaryEscape(reps.left.nome)+' '+summaryEscape(lv)+' · '+summaryEscape(reps.right.nome)+' '+summaryEscape(rv)+' → '+summaryEscape(adv)+'</li>');copy.push('• '+statLabel(k)+': '+reps.left.nome+' '+lv+' · '+reps.right.nome+' '+rv+' → '+adv);});html.push('</ul>');
+  var pws=SUMMARY_PHASE_WEIGHTS[c.key]||[];if(pws.length){html.push('<div class="initial-summary-section">Impatto previsto sulle Fasi</div><ul class="initial-summary-list">');copy.push('','<b>Impatto previsto sulle Fasi</b>');pws.forEach(function(w,i){var t=summaryTendency(summaryWeightedScore(reps.left,reps.right,w,c),reps.left,reps.right);html.push('<li><b>Fase '+phaseRoman(i)+':</b> '+summaryEscape(t)+'</li>');copy.push('• Fase '+phaseRoman(i)+': '+t);});html.push('</ul>');}
+ }
+ var diff=null;if(hero&&opp)diff=summaryDifficultyForConflict(hero,opp,c);else if(!reps)diff=summaryDifficultySolo(c);
+ if(diff){html.push('<div class="initial-difficulty"><strong>Difficoltà iniziale stimata'+(hero&&opp?' per '+summaryEscape(hero.nome):'')+': '+summaryEscape(diff.level)+'</strong><br>'+summaryEscape(diff.reason)+' La stima fotografa soltanto la configurazione iniziale: bonus, malus e risultati ottenuti durante le Fasi possono cambiare il quadro.</div>');copy.push('','<b>Difficoltà iniziale stimata'+(hero&&opp?' per '+hero.nome:'')+':</b> '+diff.level, diff.reason+' La stima fotografa soltanto la configurazione iniziale: bonus, malus e risultati ottenuti durante le Fasi possono cambiare il quadro.');}
+ copy.push('[/spoiler]');return {html:html.join(''),copy:copy.join('\n')};
+}
+var SUMMARY_RENDER_TOKEN=0;
+function renderInitialSummary(){var card=q('initial-summary-card'),content=q('initial-summary-content'),bb=q('initial-summary-bb');if(!card||!content||!bb)return;var data=buildInitialSummaryData();if(!data){card.style.display='none';content.innerHTML='';bb.textContent='';return;}card.style.display='block';content.innerHTML=data.html;bb.textContent=data.copy;}
+function scheduleInitialSummaryRender(){var token=++SUMMARY_RENDER_TOKEN;requestAnimationFrame(function(){if(token!==SUMMARY_RENDER_TOKEN)return;renderInitialSummary();});}
+function setupInitialSummary(){var b=q('btn-copy-initial-summary'),go=q('btn-summary-phase1');if(b)on(b,function(){var data=buildInitialSummaryData();if(data)copyText(data.copy,b);});if(go)on(go,function(){var c=activeCase(),mod=c?q('case-'+c.key):null;if(!c||!mod)return;var phases=phaseListForModule(mod);if(!phases.length){refreshCases();mod=q('case-'+c.key);phases=phaseListForModule(mod);}if(phases.length)activatePhasePage(mod,0,true);});var w=workspace();if(w){['input','change','click'].forEach(function(ev){w.addEventListener(ev,function(e){var t=e.target;if(t&&(t.id==='btn-copy-initial-summary'||t.id==='btn-summary-phase1'))return;scheduleInitialSummaryRender();},true);});}}
 function roleAllowed(role,caseKey){return !!(ROLE_CASES[role]&&ROLE_CASES[role].indexOf(caseKey)!==-1);} 
 function roleEffect(role){if(!role){return 'scegli un ruolo di supporto';}if(role==='assistito'){return '+3 alla soglia/totale; Gravità automaticamente Infrazione Minore';}if(role==='testimone'){return '1 rilancio complessivo per Fase in caso di fallimento';}if(role==='verbalizzante'){return '+2 alla soglia/totale';}if(role==='onorevole'){return 'Processo: doppio tiro, conserva il risultato più conveniente';}return 'ripete lo stesso tiro e può sostituire il Difensore quando previsto';} 
 function supportAssignmentAllowed(a,caseKey){return !!pgById(a.assegnatoA);}
@@ -899,7 +1006,7 @@ function caseHeader(body,caseKey,text){body.appendChild(el('p',{text:text}));app
 function teamOptionsForCase(){var c=activeCase();if(!c){return [['','Nessuna squadra']];}if(c.key==='patteggiamento'||c.key==='processo'){return [['','— scegli parte —'],['difesa','Difesa'],['accusa','Accusa']];}if(c.key==='mediazione'){return [['','— scegli parte —'],['parteA','Parte A'],['parteB','Parte B']];}return [['','Squadra non richiesta']];}
 function statKeysForActiveCase(){var c=activeCase();return c&&CASE_STAT_KEYS[c.key]?CASE_STAT_KEYS[c.key]:[];}
 function renderParty(){var listEl=q('party-list'),statsEl=q('stats-list');listEl.innerHTML='';if(statsEl){statsEl.innerHTML='';}var cNow=activeCase(),sideNote=q('side-choice-note');if(sideNote){sideNote.style.display=cNow&&(cNow.key==='patteggiamento'||cNow.key==='processo')?'block':'none';}var opts=teamOptionsForCase(),allowedTeam=opts.map(function(x){return x[0];});STATE.party.forEach(function(pg){if(allowedTeam.indexOf(pg.squadra)===-1){pg.squadra='';}var card=el('div',{'class':'pg-card'}),head=el('div',{'class':'pg-head'});var nameInp=el('input',{type:'text',value:pg.nome});onInput(nameInp,function(){pg.nome=nameInp.value;});nameInp.addEventListener('change',function(){refreshCases();renderParty();});var squadraSel=el('select',{});opts.forEach(function(pair){var o=el('option',{value:pair[0],text:pair[1]});if(pg.squadra===pair[0]){o.selected=true;}squadraSel.appendChild(o);});if(opts.length===1){squadraSel.disabled=true;}squadraSel.addEventListener('change',function(){pg.squadra=squadraSel.value;refreshCases();});var tag=el('span',{'class':'hint',text:pg.tipo==='png'?'(PNG, non conta tra i 2 PG minimi)':'(PG Difensore)'});var rm=el('button',{'class':'remove-btn',type:'button',text:'Rimuovi'});on(rm,function(){STATE.party=STATE.party.filter(function(p){return p.id!==pg.id;});STATE.adulti.forEach(function(a){if(a.assegnatoA===pg.id){a.assegnatoA='';}});renderParty();refreshCases();syncGravitaControl();});head.appendChild(nameInp);head.appendChild(squadraSel);head.appendChild(tag);head.appendChild(rm);card.appendChild(head);listEl.appendChild(card);
- if(statsEl&&activeCase()){var sc=el('div',{'class':'pg-card'});sc.appendChild(el('div',{'class':'roll-title',text:pg.nome+(pg.tipo==='png'?' — Difensore Rivale PNG':'')}));var grid=el('div',{'class':'stat-grid'}),keys=statKeysForActiveCase();STATKEYS.forEach(function(st){if(keys.indexOf(st.k)===-1){return;}var f=el('div',{'class':'stat-field'});f.appendChild(el('label',{text:st.l}));var attrs={type:'number',min:'0',step:'1',value:pg[st.k]===null?'':String(pg[st.k])};if(st.k==='prestigio'){attrs.max='100';attrs.title='Prestigio valido: da 0 a 100';}var i=el('input',attrs);if(pg.tipo==='png'&&(st.k==='acume'||st.k==='popolarita')){i.title='Valore fisso del PNG secondo regolamento';i.disabled=true;}else if(pg.tipo==='png'&&st.k==='prestigio'){i.title='Valore determinato con 11+1d60 durante la generazione del PNG';i.disabled=true;}onInput(i,function(){if(!i.disabled){pg[st.k]=parseStat(st.k,i.value);}});i.addEventListener('change',function(){/* Il valore è già aggiornato su input. La ricostruzione delle Fasi avviene quando si entra nella Fase I, evitando di distruggere i selettori durante il click. */});f.appendChild(i);grid.appendChild(f);});sc.appendChild(grid);if(keys.indexOf('prestigio')!==-1){sc.appendChild(el('div',{'class':'small-note',text:'Fascia Prestigio: '+prestigioFascia(pg.prestigio)+(activeCase().key==='patteggiamento'?' · Bonus Prestigio Fase III: '+(prestigioBonus(pg.prestigio)===null?'—':'+'+prestigioBonus(pg.prestigio)):'')}));}statsEl.appendChild(sc);}});
+ if(statsEl&&activeCase()){var sc=el('div',{'class':'pg-card'});sc.appendChild(el('div',{'class':'roll-title',text:pg.nome+(pg.tipo==='png'?' — Difensore Rivale PNG':'')}));var grid=el('div',{'class':'stat-grid'}),keys=statKeysForActiveCase();STATKEYS.forEach(function(st){if(keys.indexOf(st.k)===-1){return;}var f=el('div',{'class':'stat-field'});f.appendChild(el('label',{text:st.l}));var attrs={type:'number',min:'0',step:'1',value:pg[st.k]===null?'':String(pg[st.k])};if(st.k==='prestigio'){attrs.max='100';attrs.title='Prestigio valido: da 0 a 100';}var i=el('input',attrs);if(pg.tipo==='png'&&(st.k==='acume'||st.k==='popolarita')){i.title='Valore fisso del PNG secondo regolamento';i.disabled=true;}else if(pg.tipo==='png'&&st.k==='prestigio'){i.title='Valore determinato con 11+1d60 durante la generazione del PNG';i.disabled=true;}onInput(i,function(){if(!i.disabled){pg[st.k]=parseStat(st.k,i.value);scheduleInitialSummaryRender();}});i.addEventListener('change',function(){/* Il valore è già aggiornato su input. La ricostruzione delle Fasi avviene quando si entra nella Fase I, evitando di distruggere i selettori durante il click. */scheduleInitialSummaryRender();});f.appendChild(i);grid.appendChild(f);});sc.appendChild(grid);if(keys.indexOf('prestigio')!==-1){sc.appendChild(el('div',{'class':'small-note',text:'Fascia Prestigio: '+prestigioFascia(pg.prestigio)+(activeCase().key==='patteggiamento'?' · Bonus Prestigio Fase III: '+(prestigioBonus(pg.prestigio)===null?'—':'+'+prestigioBonus(pg.prestigio)):'')}));}statsEl.appendChild(sc);}});
  var ad=q('adulti-list');ad.innerHTML='';var defs=realDefenders(),c=activeCase();STATE.adulti.forEach(function(a){if(c&&a.ruolo&&!roleAllowed(a.ruolo,c.key)){a.ruolo='';}var card=el('div',{'class':'pg-card'}),head=el('div',{'class':'pg-head'});var name=el('input',{type:'text',value:a.nome});onInput(name,function(){a.nome=name.value;});var role=el('select',{});role.appendChild(el('option',{value:'',text:'— scegli ruolo —'}));[['assistito','Assistito'],['testimone','Testimone / Parte Terza'],['verbalizzante','Verbalizzante'],['onorevole','Onorevole'],['amico','Amico a supporto']].forEach(function(x){if(c&&!roleAllowed(x[0],c.key)){return;}var o=el('option',{value:x[0],text:x[1]});if(a.ruolo===x[0]){o.selected=true;}role.appendChild(o);});role.addEventListener('change',function(){a.ruolo=role.value;refreshCases();syncGravitaControl();syncFlowVisibility();});var ass=pgSelect(defs,a.assegnatoA,function(v){a.assegnatoA=v;refreshCases();syncGravitaControl();},'— assegna al Difensore —');var rm=el('button',{'class':'remove-btn',type:'button',text:'Rimuovi'});on(rm,function(){STATE.adulti=STATE.adulti.filter(function(x){return x.id!==a.id;});renderParty();refreshCases();syncGravitaControl();});head.appendChild(name);head.appendChild(role);head.appendChild(ass);head.appendChild(rm);card.appendChild(head);card.appendChild(el('div',{'class':'small-note',text:'Effetto: '+roleEffect(a.ruolo)}));ad.appendChild(card);});syncParticipantBox();}
 
 function setupPartyButtons(){on(q('btn-add-pg'),function(){var p=newPG('difensore');p.nome='Difensore '+(realDefenders().length+1);STATE.party.push(p);renderParty();refreshCases();});on(q('btn-add-adulto'),function(){STATE.adulti.push({id:uid(),nome:'PG Adulto di supporto',ruolo:'',assegnatoA:''});renderParty();refreshCases();syncGravitaControl();syncFlowVisibility();});}
@@ -916,7 +1023,7 @@ function syncSpecialConfig(){var host=q('case-special-config'),note=q('det-note'
  else if(c.key==='inchiesta'){var r=el('div',{'class':'result-row'}),s2=el('select',{});r.appendChild(el('label',{text:'Linea dell’Inchiesta:'}));s2.appendChild(el('option',{value:'',text:'— scegli —'}));s2.appendChild(el('option',{value:'difesa',text:'Difesa — determina Condizione'}));s2.appendChild(el('option',{value:'accusa',text:'Accusa — determina Gravità'}));s2.value=STATE.inchiestaSide;s2.addEventListener('change',function(){STATE.inchiestaSide=s2.value;STATE.cond=null;STATE.grav=null;if(UI.condSel){UI.condSel.value='';}if(UI.gravSel){UI.gravSel.value='';}syncFlowVisibility();refreshCases();});r.appendChild(s2);host.appendChild(r);if(!STATE.inchiestaSide){note.textContent='Scegli la linea del Caso: la Difesa usa soltanto Condizione, l’Accusa soltanto Gravità.';}}
  else if(c.key==='redazione'){note.textContent='Questo Caso non utilizza né Condizione né Gravità: puoi passare direttamente ai Parametri dei Difensori.';}
  else if(c.key==='appello'||c.key==='custodia'){note.textContent='Questo Caso utilizza soltanto la Condizione della Difesa: la Gravità non deve essere determinata.';}}
-function syncFlowVisibility(){var active=!!activeCase(),c=activeCase();var ids=['anagrafica','step2','parametri-pg'];ids.forEach(function(id){var n=q(id);if(n){n.style.display=active?'block':'none';}});var png=q('step3');if(png){png.style.display=active&&c&&(c.key==='patteggiamento'||c.key==='processo'||c.key==='mediazione')?'block':'none';}var tabs=q('tabs'),cases=q('cases');if(tabs){tabs.style.display=active?'flex':'none';}if(cases){cases.style.display=active?'block':'none';}syncSpecialConfig();var cb=q('cond-block'),gb=q('grav-block');if(cb){cb.style.display=active&&caseNeedsCond()?'block':'none';}if(gb){gb.style.display=active&&caseNeedsGrav()?'block':'none';}syncGravitaControl();updateGlobalMods();}
+function syncFlowVisibility(){var active=!!activeCase(),c=activeCase();var ids=['anagrafica','step2','parametri-pg'];ids.forEach(function(id){var n=q(id);if(n){n.style.display=active?'block':'none';}});var png=q('step3');if(png){png.style.display=active&&c&&(c.key==='patteggiamento'||c.key==='processo'||c.key==='mediazione')?'block':'none';}var tabs=q('tabs'),cases=q('cases');if(tabs){tabs.style.display=active?'flex':'none';}if(cases){cases.style.display=active?'block':'none';}syncSpecialConfig();var cb=q('cond-block'),gb=q('grav-block');if(cb){cb.style.display=active&&caseNeedsCond()?'block':'none';}if(gb){gb.style.display=active&&caseNeedsGrav()?'block':'none';}syncGravitaControl();updateGlobalMods();scheduleInitialSummaryRender();}
 function syncCaseStep(){if(!UI.attemptBox){return;}UI.attemptBox.textContent='Determinazioni 1d7 usate: '+STATE.caseAttempts+'/3'+(STATE.linked?' · Caso aperto come collegato':'')+(STATE.active?' · Caso attivo: '+caseByNum(STATE.active).nome:'');UI.caseInp.disabled=STATE.caseLocked||STATE.caseAttempts>=3;UI.caseBtn.disabled=STATE.caseLocked||STATE.caseAttempts>=3;UI.renounceBtn.style.display=STATE.caseLocked&&!STATE.linked&&STATE.caseAttempts<3?'inline-block':'none';if(UI.linkedSel){UI.linkedSel.disabled=STATE.caseLocked;}if(UI.linkedBtn){UI.linkedBtn.disabled=STATE.caseLocked;}syncFlowVisibility();}
 
 function renderTableRoll(containerId,titolo,table,apply){var box=q(containerId);box.innerHTML='';var domanda=titolo.indexOf('Condizione')!==-1?'Qual è la Condizione presunta dell\'Assistito?':(titolo.indexOf('Gravità')!==-1?'Qual è la Gravità del Reato?':titolo+'?');var dado='[dice=1d'+table.length+']'+titolo+'[/dice]';var bb=forumDiceBlock(domanda,tableAnswers(table),dado);box.appendChild(el('div',{'class':'roll-title',text:titolo}));var bbrow=el('div',{'class':'bbrow'});var bbox=el('div',{'class':'bb-box',text:bb});var cp=el('button',{'class':'copy-btn',type:'button',text:'Copia'});on(cp,function(){copyText(bb,cp);});bbrow.appendChild(bbox);bbrow.appendChild(cp);box.appendChild(bbrow);var rr=el('div',{'class':'result-row'});rr.appendChild(el('label',{text:'Risultato:'}));var sel=el('select',{});sel.appendChild(el('option',{value:'',text:'—'}));table.forEach(function(t){sel.appendChild(el('option',{value:String(t.val),text:t.val+' — '+t.label}));});rr.appendChild(sel);box.appendChild(rr);sel.addEventListener('change',function(){var x=null;table.forEach(function(t){if(String(t.val)===sel.value){x=t;}});apply(x);});return sel;} 
@@ -1179,7 +1286,7 @@ function setupPhaseNavigatorObserver(){
 }
 
 var moduleRefs={}; 
-function buildAllCases(){var tabs=q('tabs'),cases=q('cases');tabs.innerHTML='';cases.innerHTML='';moduleRefs={};var pv=participantValidation();CASES.forEach(function(c){var tb=el('button',{'class':'tab-btn',type:'button',text:c.num+'. '+c.nome});tb.disabled=STATE.active!==c.num;on(tb,function(){if(STATE.active===c.num){setActiveCase(c.num,true);}});tabs.appendChild(tb);c._tab=tb;var sh=moduleShell(c);moduleRefs[c.key]=sh;var cpv=caseParticipantValidation(c.key);if(pv.ok&&cpv.ok){caseBuilders[c.key](sh.body);}else{var msg=!pv.ok?pv.msg:cpv.msg;sh.body.appendChild(el('div',{'class':'adulti-note',text:msg+' Le Fasi restano bloccate finché i partecipanti non tornano validi per questo Caso.'}));}cases.appendChild(sh.mod);refreshCasePhaseNavigator(sh.mod,c.key);});setActiveCase(STATE.active,false);refreshAllPhaseNavigators();} 
+function buildAllCases(){var tabs=q('tabs'),cases=q('cases');tabs.innerHTML='';cases.innerHTML='';moduleRefs={};var pv=participantValidation();CASES.forEach(function(c){var tb=el('button',{'class':'tab-btn',type:'button',text:c.num+'. '+c.nome});tb.disabled=STATE.active!==c.num;on(tb,function(){if(STATE.active===c.num){setActiveCase(c.num,true);}});tabs.appendChild(tb);c._tab=tb;var sh=moduleShell(c);moduleRefs[c.key]=sh;var cpv=caseParticipantValidation(c.key);if(pv.ok&&cpv.ok){caseBuilders[c.key](sh.body);}else{var msg=!pv.ok?pv.msg:cpv.msg;sh.body.appendChild(el('div',{'class':'adulti-note',text:msg+' Le Fasi restano bloccate finché i partecipanti non tornano validi per questo Caso.'}));}cases.appendChild(sh.mod);refreshCasePhaseNavigator(sh.mod,c.key);});setActiveCase(STATE.active,false);refreshAllPhaseNavigators();scheduleInitialSummaryRender();} 
 function setActiveCase(num,scroll){STATE.active=caseByNum(num)?num:null;CASES.forEach(function(c){var sh=moduleRefs[c.key];if(!sh){return;}var active=STATE.active===c.num;sh.mod.style.display=active?'block':'none';if(c._tab){c._tab.disabled=!active;c._tab.classList.toggle('on',active);}});if(scroll&&STATE.active){var c=caseByNum(STATE.active);var n=q('case-'+c.key);if(n){n.scrollIntoView({behavior:'smooth',block:'start'});}}syncCaseStep();syncGravitaControl();syncFlowVisibility();} 
 function refreshCases(){buildAllCases();syncParticipantBox();updateGlobalMods();} 
  
@@ -1197,7 +1304,7 @@ function actionFromEvent(e){var t=e.target;if(!t||!workspace()||!workspace().con
 function sameLoc(a,b){return JSON.stringify(a||null)===JSON.stringify(b||null);}
 function recordSessionAction(e){if(RESTORING_SESSION||SESSION_READONLY||!CURRENT_SESSION||!sessionCanEdit(CURRENT_SESSION_DATA))return;var a=actionFromEvent(e);if(!a||!a.loc)return;var last=SESSION_ACTIONS.length?SESSION_ACTIONS[SESSION_ACTIONS.length-1]:null;if(a.type==='input'&&last&&last.type==='input'&&sameLoc(a.loc,last.loc))SESSION_ACTIONS[SESSION_ACTIONS.length-1]=a;else SESSION_ACTIONS.push(a);scheduleSessionSave();}
 function attachSessionRecorder(){var w=workspace();if(!w||w.getAttribute('data-recorder-ready')==='1')return;w.setAttribute('data-recorder-ready','1');['input','change','click'].forEach(function(ev){w.addEventListener(ev,recordSessionAction,true);});}
-function replayActions(actions){RESTORING_SESSION=true;try{(actions||[]).forEach(function(a){var t=resolveActionTarget(a);if(!t){console.warn('Ricerca Casi: azione di ripristino non trovata',a);return;}if(a.type==='click'){if(!t.disabled&&typeof t.click==='function')t.click();}else{if('value' in t)t.value=a.value==null?'':String(a.value);if('checked' in t)t.checked=!!a.checked;t.dispatchEvent(new Event(a.type,{bubbles:true}));}});}finally{RESTORING_SESSION=false;}}
+function replayActions(actions){RESTORING_SESSION=true;try{(actions||[]).forEach(function(a){var t=resolveActionTarget(a);if(!t){console.warn('Ricerca Casi: azione di ripristino non trovata',a);return;}if(a.type==='click'){if(!t.disabled&&typeof t.click==='function')t.click();}else{if('value' in t)t.value=a.value==null?'':String(a.value);if('checked' in t)t.checked=!!a.checked;t.dispatchEvent(new Event(a.type,{bubbles:true}));}});}finally{RESTORING_SESSION=false;scheduleInitialSummaryRender();}}
 function clearPngGenerator(){var b=q('roll-png');if(b)Array.prototype.forEach.call(b.querySelectorAll('input'),function(i){i.value='';i.dispatchEvent(new Event('input',{bubbles:true}));});var d=q('png-fatto');if(d)d.textContent='';}
 function resetCore(initialName){RESTORING_SESSION=true;try{PHASE_PAGE_BY_CASE={};if(workspace())workspace().classList.remove('phase-session-view');STATE=freshState();var p=newPG('difensore');p.nome=initialName||'Difensore 1';p.squadra='';STATE.party.push(p);if(UI.caseInp)UI.caseInp.value='';if(UI.linkedSel)UI.linkedSel.value='';if(UI.condSel)UI.condSel.value='';if(UI.gravSel)UI.gravSel.value='';clearPngGenerator();renderParty();refreshCases();syncCaseStep();syncFlowVisibility();}finally{RESTORING_SESSION=false;}}
 function setWorkspaceReadOnly(ro){SESSION_READONLY=!!ro;var w=workspace();if(!w)return;Array.prototype.forEach.call(w.querySelectorAll('input,select,textarea,button'),function(n){if(n.getAttribute('data-session-control')==='1')return;if(n.tagName==='BUTTON'&&['Copia','Copiato'].indexOf((n.textContent||'').trim())!==-1)return;n.disabled=SESSION_READONLY;});updateSessionToolbar();}
@@ -1348,6 +1455,8 @@ function setupFirebaseSessions(){setupSessionControls();workspace().style.displa
 
 function boot(){var p=newPG('difensore');p.nome='Difensore 1';p.squadra='';STATE.party.push(p);UI.participantBox=el('div',{'class':'phase-outcome'});q('anagrafica').querySelector('.card-body').insertBefore(UI.participantBox,q('party-list'));setupPartyButtons();setupCaseDetermination();setupConditionGravity();setupPNG();renderParty();buildAllCases();setupPhaseNavigatorObserver();syncFlowVisibility();refreshAllPhaseNavigators();}
 boot();
+setupInitialSummary();
+renderInitialSummary();
 setupFirebaseSessions();
  
 })(); 
