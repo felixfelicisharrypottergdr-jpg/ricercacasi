@@ -1,3 +1,4 @@
+<!-- Revisione v14: sessioni Firebase multi-Caso con autenticazione anonima, autosalvataggio, ripristino e cancellazione definitiva -->
 <!-- Revisione v12: flusso Caso -> partecipanti -> determinazioni -> parametri -> Fasi; parametri mostrati solo se utili al Caso -->
 <!-- Revisione v11: ripristino font Magic + icona Font Awesome + sfondo .foglio #7D1734 -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
@@ -493,6 +494,37 @@
  text-align:center; 
  font-size: 13px} 
  
+
+/*===== Sessioni Firebase===== */
+#ricerca-casi .session-card {margin-bottom:26px}
+#ricerca-casi .session-topbar {display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+#ricerca-casi .session-title {font-family:var(--serif);font-size:1.18rem;font-weight:700;color:var(--navy);line-height:1.3}
+#ricerca-casi .session-meta {margin-top:4px;color:#735E64;font-size:13px;line-height:1.5}
+#ricerca-casi .session-actions {display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#ricerca-casi .session-list {display:grid;grid-template-columns:1fr;gap:12px;margin-top:18px}
+#ricerca-casi .session-item {padding:16px 18px;border:1px solid rgba(125,23,52,.24);border-radius:10px;background:#FBF5F1}
+#ricerca-casi .session-item-row {display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+#ricerca-casi .session-owner {display:inline-block;margin-top:7px;padding:3px 8px;border-radius:999px;background:#EFE1DD;color:#6B3242;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+#ricerca-casi .session-owner.mine {background:rgba(70,107,80,.12);color:var(--ok)}
+#ricerca-casi .session-status {min-height:20px;margin-top:8px;color:#6D575D;font-size:13px;font-weight:600}
+#ricerca-casi .session-status.ok {color:var(--ok)}
+#ricerca-casi .session-status.bad {color:var(--bad)}
+#ricerca-casi .session-warning {margin:14px 0;padding:14px 16px;border:1px solid #C79B72;border-radius:9px;background:#FFF4E7;color:#654225;font-size:14px;line-height:1.6}
+#ricerca-casi .session-danger {border-color:#B52B45;background:#FFF0F2;color:#7D1734}
+#ricerca-casi .danger-btn {min-height:42px;padding:9px 14px;border:1px solid #8E203A;border-radius:8px;background:#8E203A;color:#FFF;font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer}
+#ricerca-casi .danger-btn:hover {filter:brightness(1.07)}
+#ricerca-casi .ghost-btn {min-height:42px;padding:9px 14px;border:1px solid #8D747A;border-radius:8px;background:#FFFDFC;color:#5A4349;font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer}
+#ricerca-casi .session-new-row {display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+#ricerca-casi .session-new-row input {flex:1 1 260px;min-width:0;min-height:46px;padding:10px 12px;border:1px solid #B98D95;border-radius:8px;background:#FFFDFC;color:var(--ink);font-family:var(--sans);font-size:15px}
+#ricerca-casi .readonly-banner {margin:0 0 18px;padding:13px 15px;border:1px solid #A98C65;border-radius:8px;background:#FFF4E4;color:#624A2C;font-size:14px;font-weight:600;line-height:1.55}
+#ricerca-casi .session-modal {position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(20,9,13,.78)}
+#ricerca-casi .session-modal.open {display:flex}
+#ricerca-casi .session-modal-box {width:min(620px,100%);max-height:90vh;overflow:auto;padding:24px;border:1px solid #C9AAA9;border-radius:12px;background:#F4EEE9;color:var(--ink);box-shadow:0 18px 70px rgba(0,0,0,.35)}
+#ricerca-casi .session-modal-box h3 {margin:0 0 12px;color:#7D1734;font-family:var(--serif);font-size:1.45rem}
+#ricerca-casi .session-confirm {display:flex;gap:10px;align-items:flex-start;margin:18px 0;padding:13px;border:1px solid rgba(125,23,52,.22);border-radius:8px;background:#FFFDFC;font-size:14px;line-height:1.5}
+#ricerca-casi .session-confirm input {margin-top:3px;transform:scale(1.15)}
+#ricerca-casi .session-toolbar-card .card-body {padding-top:18px;padding-bottom:18px}
+
 /*===== Responsive===== */ 
 @media(max-width: 760px) {#ricerca-casi .wrap {padding: 0 14px !important} 
  #ricerca-casi .masthead {margin-left: -14px; margin-right: -14px; padding: 40px 16px 28px} 
@@ -516,7 +548,43 @@
  <div class="seal"><i class="fa-solid fa-scale-balanced"></i></div> 
  <div class="eyebrow" style="font-size:30px; font-family:'magic', Georgia, serif">· Ricerca Casi ·</div> 
  <p>Per PG Difensori e PG Adulti di supporto</p> 
- </div> 
+ </div>
+
+ <!-- SESSIONI FIREBASE -->
+ <div class="card session-card" id="session-home">
+  <div class="card-head"><span class="tag">Sessioni</span><h2>Casi in corso</h2></div>
+  <div class="card-body">
+   <p class="hint">Ogni Caso viene salvato automaticamente e può essere ripreso in seguito dallo stesso browser che lo ha creato.</p>
+   <div class="session-warning"><b>Importante:</b> ogni sessione va modificata soltanto dal giocatore che l'ha creata. Gli altri giocatori possono visualizzarla, ma non modificarla o eliminarla. Se cancelli i dati del browser oppure cambi browser/dispositivo, potresti non essere più riconosciuto come proprietario della sessione; il Narratore potrà comunque gestirla.</div>
+   <div id="firebase-auth-status" class="session-status">Connessione a Firebase…</div>
+   <div class="session-new-row">
+    <input id="new-session-pg" type="text" maxlength="80" placeholder="Nome del PG Difensore (es. Coral)">
+    <button class="add-btn" id="btn-new-session" type="button">+ Nuovo Caso</button>
+    <button class="ghost-btn" id="btn-refresh-sessions" type="button">Aggiorna elenco</button>
+   </div>
+   <div id="session-home-msg" class="session-status"></div>
+   <div id="session-list" class="session-list"></div>
+  </div>
+ </div>
+
+ <div id="case-workspace" style="display:none">
+  <div class="card session-toolbar-card" id="session-toolbar">
+   <div class="card-body">
+    <div class="session-topbar">
+     <div>
+      <div id="current-session-title" class="session-title">Caso in corso</div>
+      <div id="current-session-meta" class="session-meta"></div>
+      <div id="save-status" class="session-status"></div>
+     </div>
+     <div class="session-actions">
+      <button class="ghost-btn" id="btn-back-sessions" type="button" data-session-control="1">← Torna ai Casi</button>
+      <button class="danger-btn" id="btn-delete-session" type="button" data-session-control="1">Concludi ed elimina Caso</button>
+     </div>
+    </div>
+    <div id="readonly-banner" class="readonly-banner" style="display:none">Stai visualizzando il Caso di un altro giocatore. Puoi consultarlo, ma solo chi lo ha creato o il Narratore può modificarlo o eliminarlo.</div>
+   </div>
+  </div>
+
  <!-- STEP 1: TIPO DI CASO --> 
  <div class="card" id="step1"> 
  <div class="card-head"><span class="tag">Passo 1</span><h2>Per quale Caso vieni chiamato?</h2></div> 
@@ -591,9 +659,26 @@
  <div class="tabs" id="tabs"></div> 
  <div id="cases"></div> 
  <p class="footer-note">Fascicolo digitale a uso dei Difensori del Wizengamot · i tiri vanno 
-sempre effettuati sul forum con l'apposito tag dado copiabile.</p> 
-</div> 
-<script type="text/javascript"> 
+sempre effettuati sul forum con l'apposito tag dado copiabile.</p>
+ </div><!-- /case-workspace -->
+
+ <div class="session-modal" id="delete-session-modal" aria-hidden="true">
+  <div class="session-modal-box">
+   <h3>Attenzione: eliminazione definitiva</h3>
+   <div class="session-warning session-danger"><b>Questo Caso verrà cancellato definitivamente.</b><br>Non esiste un archivio né un cestino nel tool e il Caso non potrà essere recuperato. Se vorrai giocarlo di nuovo, dovrai creare un nuovo Caso da zero e reinserire tutti i dati e tutti i risultati ottenuti.</div>
+   <label class="session-confirm"><input id="delete-session-check" type="checkbox"><span><b>Ho capito che il Caso non esisterà più</b> e che, se mi servirà nuovamente, dovrò rifarlo da zero.</span></label>
+   <div class="session-actions">
+    <button class="ghost-btn" id="btn-cancel-delete" type="button" data-session-control="1">Annulla</button>
+    <button class="danger-btn" id="btn-confirm-delete" type="button" data-session-control="1" disabled>Elimina definitivamente il Caso</button>
+   </div>
+   <div id="delete-session-msg" class="session-status bad"></div>
+  </div>
+ </div>
+ </div><!-- /.wrap -->
+ <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+ <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+ <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+ <script type="text/javascript"> 
 (function(){ 
 'use strict';
 /* Ricerca Casi revisionata v7: Mediazione con PNG solo in sostituzione di una parte priva di PG reali; Patteggiamento Fase III con uno o più round di sanzione scelti dai player. */ 
@@ -656,7 +741,14 @@ var ROLE_CASES={
  amico:['processo','appello','custodia','inchiesta','redazione'] 
 }; 
 var STATE={uid:1,party:[],adulti:[],cond:null,grav:null,active:null,caseAttempts:0,caseLocked:false,linked:false,mediaMode:'',inchiestaSide:''}; 
-var UI={gravSel:null,condSel:null,caseInp:null,caseBtn:null,renounceBtn:null,attemptBox:null,linkedSel:null,linkedBtn:null,participantBox:null}; 
+var UI={gravSel:null,condSel:null,caseInp:null,caseBtn:null,renounceBtn:null,attemptBox:null,linkedSel:null,linkedBtn:null,participantBox:null};
+
+/*===== Sessioni Firebase v14 =====*/
+var FIREBASE_CONFIG={apiKey:"AIzaSyCvd56bSEL02s2OY2PSk7uyFX-CYRB4Vz0",authDomain:"conteggi-eee1b.firebaseapp.com",projectId:"conteggi-eee1b",storageBucket:"conteggi-eee1b.firebasestorage.app",messagingSenderId:"481320219586",appId:"1:481320219586:web:87e974d618a302adfadc5b",measurementId:"G-EFHVL4H1XW"};
+var SESSION_COLLECTION='ricerca_casi';
+var NARRATOR_UID='TFgqfVrFLjW5SwqRFXmEi8tDhtM2';
+var FB={app:null,auth:null,db:null,user:null};
+var CURRENT_SESSION=null,CURRENT_SESSION_DATA=null,SESSION_ACTIONS=[],RESTORING_SESSION=false,SESSION_READONLY=false,SAVE_TIMER=null,SAVE_IN_FLIGHT=false,PENDING_SAVE=false; 
  
 function caseByNum(n){for(var i=0;i<CASES.length;i++){if(CASES[i].num===n){return CASES[i];}}return null;} 
 function activeCase(){return caseByNum(STATE.active);} 
@@ -918,8 +1010,42 @@ function buildAllCases(){var tabs=q('tabs'),cases=q('cases');tabs.innerHTML='';c
 function setActiveCase(num,scroll){STATE.active=caseByNum(num)?num:null;CASES.forEach(function(c){var sh=moduleRefs[c.key];if(!sh){return;}var active=STATE.active===c.num;sh.mod.style.display=active?'block':'none';if(c._tab){c._tab.disabled=!active;c._tab.classList.toggle('on',active);}});if(scroll&&STATE.active){var c=caseByNum(STATE.active);var n=q('case-'+c.key);if(n){n.scrollIntoView({behavior:'smooth',block:'start'});}}syncCaseStep();syncGravitaControl();syncFlowVisibility();} 
 function refreshCases(){buildAllCases();syncParticipantBox();updateGlobalMods();} 
  
-function boot(){var p=newPG('difensore');p.nome='Difensore 1';p.squadra='';STATE.party.push(p);UI.participantBox=el('div',{'class':'phase-outcome'});q('anagrafica').querySelector('.card-body').insertBefore(UI.participantBox,q('party-list'));setupPartyButtons();setupCaseDetermination();setupConditionGravity();setupPNG();renderParty();buildAllCases();syncFlowVisibility();} 
-boot(); 
+function freshState(){return {uid:1,party:[],adulti:[],cond:null,grav:null,active:null,caseAttempts:0,caseLocked:false,linked:false,mediaMode:'',inchiestaSide:''};}
+function workspace(){return q('case-workspace');}
+function sessionCanEdit(data){return !!(FB.user&&data&&(data.ownerUid===FB.user.uid||FB.user.uid===NARRATOR_UID));}
+function activeSessionLabel(){var c=activeCase(),first=realDefenders()[0],name=(first&&first.nome?first.nome.trim():'')||(CURRENT_SESSION_DATA&&CURRENT_SESSION_DATA.pgName)||'PG Difensore';return name+' — '+(c?c.nome:'Caso da determinare');}
+function setSaveStatus(text,kind){var n=q('save-status');if(!n)return;n.textContent=text||'';n.className='session-status'+(kind?' '+kind:'');}
+function setHomeMsg(text,kind){var n=q('session-home-msg');if(!n)return;n.textContent=text||'';n.className='session-status'+(kind?' '+kind:'');}
+function formatTs(ts){try{var d=ts&&typeof ts.toDate==='function'?ts.toDate():null;return d?d.toLocaleString('it-IT',{dateStyle:'short',timeStyle:'short'}):'';}catch(e){return '';}}
+function updateSessionToolbar(){if(!CURRENT_SESSION_DATA)return;q('current-session-title').textContent=activeSessionLabel();var mine=FB.user&&CURRENT_SESSION_DATA.ownerUid===FB.user.uid,narr=FB.user&&FB.user.uid===NARRATOR_UID,parts=[];parts.push(mine?'Sessione creata da questo browser':(narr?'Gestione Narratore':'Sessione di un altro giocatore'));var t=formatTs(CURRENT_SESSION_DATA.updatedAt);if(t)parts.push('ultimo salvataggio '+t);q('current-session-meta').textContent=parts.join(' · ');q('readonly-banner').style.display=SESSION_READONLY?'block':'none';q('btn-delete-session').style.display=sessionCanEdit(CURRENT_SESSION_DATA)?'inline-block':'none';}
+function elementPath(target){var w=workspace();if(!w||!target||!w.contains(target))return null;if(target.id)return {id:target.id};var path=[],n=target;while(n&&n!==w){var par=n.parentElement;if(!par)return null;var idx=Array.prototype.indexOf.call(par.children,n);if(idx<0)return null;path.unshift(idx);n=par;}return n===w?{path:path}:null;}
+function resolveActionTarget(a){var w=workspace();if(!w)return null;if(a.loc&&a.loc.id){var by=q(a.loc.id);return by&&w.contains(by)?by:null;}var n=w,arr=a.loc&&a.loc.path?a.loc.path:[];for(var i=0;i<arr.length;i++){if(!n||!n.children||!n.children[arr[i]])return null;n=n.children[arr[i]];}return n===w?null:n;}
+function actionFromEvent(e){var t=e.target;if(!t||!workspace()||!workspace().contains(t))return null;if(t.closest&&t.closest('[data-session-control="1"]'))return null;if(e.type==='click'){if(t.tagName!=='BUTTON')return null;var tx=(t.textContent||'').trim();if(tx==='Copia'||tx==='Copiato')return null;return {type:'click',loc:elementPath(t)};}if(['INPUT','SELECT','TEXTAREA'].indexOf(t.tagName)===-1)return null;return {type:e.type,loc:elementPath(t),value:t.value,checked:!!t.checked};}
+function sameLoc(a,b){return JSON.stringify(a||null)===JSON.stringify(b||null);}
+function recordSessionAction(e){if(RESTORING_SESSION||SESSION_READONLY||!CURRENT_SESSION||!sessionCanEdit(CURRENT_SESSION_DATA))return;var a=actionFromEvent(e);if(!a||!a.loc)return;var last=SESSION_ACTIONS.length?SESSION_ACTIONS[SESSION_ACTIONS.length-1]:null;if(a.type==='input'&&last&&last.type==='input'&&sameLoc(a.loc,last.loc))SESSION_ACTIONS[SESSION_ACTIONS.length-1]=a;else SESSION_ACTIONS.push(a);scheduleSessionSave();}
+function attachSessionRecorder(){var w=workspace();if(!w||w.getAttribute('data-recorder-ready')==='1')return;w.setAttribute('data-recorder-ready','1');['input','change','click'].forEach(function(ev){w.addEventListener(ev,recordSessionAction,true);});}
+function replayActions(actions){RESTORING_SESSION=true;try{(actions||[]).forEach(function(a){var t=resolveActionTarget(a);if(!t){console.warn('Ricerca Casi: azione di ripristino non trovata',a);return;}if(a.type==='click'){if(!t.disabled&&typeof t.click==='function')t.click();}else{if('value' in t)t.value=a.value==null?'':String(a.value);if('checked' in t)t.checked=!!a.checked;t.dispatchEvent(new Event(a.type,{bubbles:true}));}});}finally{RESTORING_SESSION=false;}}
+function clearPngGenerator(){var b=q('roll-png');if(b)Array.prototype.forEach.call(b.querySelectorAll('input'),function(i){i.value='';i.dispatchEvent(new Event('input',{bubbles:true}));});var d=q('png-fatto');if(d)d.textContent='';}
+function resetCore(initialName){RESTORING_SESSION=true;try{STATE=freshState();var p=newPG('difensore');p.nome=initialName||'Difensore 1';p.squadra='';STATE.party.push(p);if(UI.caseInp)UI.caseInp.value='';if(UI.linkedSel)UI.linkedSel.value='';if(UI.condSel)UI.condSel.value='';if(UI.gravSel)UI.gravSel.value='';clearPngGenerator();renderParty();refreshCases();syncCaseStep();syncFlowVisibility();}finally{RESTORING_SESSION=false;}}
+function setWorkspaceReadOnly(ro){SESSION_READONLY=!!ro;var w=workspace();if(!w)return;Array.prototype.forEach.call(w.querySelectorAll('input,select,textarea,button'),function(n){if(n.getAttribute('data-session-control')==='1')return;if(n.tagName==='BUTTON'&&['Copia','Copiato'].indexOf((n.textContent||'').trim())!==-1)return;n.disabled=SESSION_READONLY;});updateSessionToolbar();}
+function sessionPayload(){var c=activeCase(),first=realDefenders()[0],name=(first&&first.nome?first.nome.trim():'')||(CURRENT_SESSION_DATA&&CURRENT_SESSION_DATA.pgName)||'PG Difensore';return {ownerUid:CURRENT_SESSION_DATA.ownerUid,initialPgName:CURRENT_SESSION_DATA.initialPgName||name,pgName:name,tipoCaso:c?c.nome:'',tipoCasoNum:c?c.num:null,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),toolVersion:'v14',actionLog:SESSION_ACTIONS};}
+function scheduleSessionSave(){if(!CURRENT_SESSION||SESSION_READONLY||!sessionCanEdit(CURRENT_SESSION_DATA))return;setSaveStatus('Salvataggio automatico…','');if(SAVE_TIMER)clearTimeout(SAVE_TIMER);SAVE_TIMER=setTimeout(saveSessionNow,900);}
+function saveSessionNow(){if(!CURRENT_SESSION||SESSION_READONLY||!sessionCanEdit(CURRENT_SESSION_DATA))return Promise.resolve();if(SAVE_IN_FLIGHT){PENDING_SAVE=true;return Promise.resolve();}SAVE_IN_FLIGHT=true;PENDING_SAVE=false;var payload=sessionPayload();return FB.db.collection(SESSION_COLLECTION).doc(CURRENT_SESSION).set(payload,{merge:true}).then(function(){Object.keys(payload).forEach(function(k){if(k!=='updatedAt')CURRENT_SESSION_DATA[k]=payload[k];});setSaveStatus('Caso salvato automaticamente ✓','ok');updateSessionToolbar();}).catch(function(err){console.error(err);setSaveStatus('Errore di salvataggio: non chiudere la pagina.','bad');}).finally(function(){SAVE_IN_FLIGHT=false;if(PENDING_SAVE){PENDING_SAVE=false;scheduleSessionSave();}});}
+function showDashboard(){if(SAVE_TIMER){clearTimeout(SAVE_TIMER);SAVE_TIMER=null;}var done=Promise.resolve();if(CURRENT_SESSION&&sessionCanEdit(CURRENT_SESSION_DATA))done=saveSessionNow();return done.finally(function(){CURRENT_SESSION=null;CURRENT_SESSION_DATA=null;SESSION_ACTIONS=[];SESSION_READONLY=false;workspace().style.display='none';q('session-home').style.display='block';closeDeleteModal();loadSessionList();});}
+function openSessionDoc(id,data){CURRENT_SESSION=id;CURRENT_SESSION_DATA=data;SESSION_ACTIONS=Array.isArray(data.actionLog)?data.actionLog.slice():[];SESSION_READONLY=!sessionCanEdit(data);q('session-home').style.display='none';workspace().style.display='block';resetCore(data.initialPgName||data.pgName||'Difensore 1');replayActions(SESSION_ACTIONS);setWorkspaceReadOnly(SESSION_READONLY);updateSessionToolbar();setSaveStatus(SESSION_READONLY?'Modalità sola lettura.':'Caso caricato · autosalvataggio attivo',SESSION_READONLY?'':'ok');setTimeout(function(){window.scrollTo({top:0,behavior:'smooth'});},20);}
+function loadSession(id){setHomeMsg('Caricamento Caso…','');return FB.db.collection(SESSION_COLLECTION).doc(id).get().then(function(doc){if(!doc.exists)throw new Error('Il Caso non esiste più.');openSessionDoc(doc.id,doc.data());setHomeMsg('','');}).catch(function(err){console.error(err);setHomeMsg('Impossibile aprire il Caso: '+err.message,'bad');});}
+function loadSessionList(){var host=q('session-list');if(!host||!FB.db||!FB.user)return;host.innerHTML='<div class="small-note">Caricamento sessioni…</div>';FB.db.collection(SESSION_COLLECTION).get().then(function(snap){var rows=[];snap.forEach(function(doc){rows.push({id:doc.id,data:doc.data()});});rows.sort(function(a,b){var at=a.data.updatedAt&&a.data.updatedAt.seconds?a.data.updatedAt.seconds:0,bt=b.data.updatedAt&&b.data.updatedAt.seconds?b.data.updatedAt.seconds:0;return bt-at;});host.innerHTML='';if(!rows.length){host.appendChild(el('div',{'class':'small-note',text:'Non ci sono Casi in corso. Puoi crearne uno qui sopra.'}));return;}rows.forEach(function(r){var d=r.data,mine=d.ownerUid===FB.user.uid,narr=FB.user.uid===NARRATOR_UID,box=el('div',{'class':'session-item'}),row=el('div',{'class':'session-item-row'}),left=el('div',{});left.appendChild(el('div',{'class':'session-title',text:(d.pgName||'PG Difensore')+' — '+(d.tipoCaso||'Caso da determinare')}));var dt=formatTs(d.updatedAt);left.appendChild(el('div',{'class':'session-meta',text:dt?'Aggiornato '+dt:''}));left.appendChild(el('span',{'class':'session-owner'+(mine?' mine':''),text:mine?'Tuo Caso':(narr?'Gestibile dal Narratore':'Altro giocatore')}));var b=el('button',{'class':mine||narr?'add-btn':'ghost-btn',type:'button',text:mine||narr?'Riprendi':'Visualizza'});b.setAttribute('data-session-control','1');on(b,function(){loadSession(r.id);});row.appendChild(left);row.appendChild(b);box.appendChild(row);host.appendChild(box);});}).catch(function(err){console.error(err);host.innerHTML='';host.appendChild(el('div',{'class':'session-status bad',text:'Non riesco a leggere i Casi in corso: '+err.message}));});}
+function createSession(){var inp=q('new-session-pg'),name=(inp.value||'').trim();if(!name){setHomeMsg('Inserisci prima il nome del PG Difensore.','bad');inp.focus();return;}if(!FB.user){setHomeMsg('Firebase non è ancora pronto. Riprova tra un momento.','bad');return;}setHomeMsg('Creazione del Caso…','');var data={ownerUid:FB.user.uid,initialPgName:name,pgName:name,tipoCaso:'',tipoCasoNum:null,createdAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),toolVersion:'v14',actionLog:[]};FB.db.collection(SESSION_COLLECTION).add(data).then(function(ref){inp.value='';return ref.get();}).then(function(doc){openSessionDoc(doc.id,doc.data());setHomeMsg('','');}).catch(function(err){console.error(err);setHomeMsg('Impossibile creare il Caso: '+err.message,'bad');});}
+function openDeleteModal(){if(!CURRENT_SESSION||!sessionCanEdit(CURRENT_SESSION_DATA))return;q('delete-session-check').checked=false;q('btn-confirm-delete').disabled=true;q('delete-session-msg').textContent='';q('delete-session-modal').classList.add('open');q('delete-session-modal').setAttribute('aria-hidden','false');}
+function closeDeleteModal(){var m=q('delete-session-modal');if(!m)return;m.classList.remove('open');m.setAttribute('aria-hidden','true');}
+function deleteCurrentSession(){if(!CURRENT_SESSION||!sessionCanEdit(CURRENT_SESSION_DATA)||!q('delete-session-check').checked)return;var id=CURRENT_SESSION;q('btn-confirm-delete').disabled=true;q('delete-session-msg').textContent='Eliminazione definitiva in corso…';FB.db.collection(SESSION_COLLECTION).doc(id).delete().then(function(){CURRENT_SESSION=null;CURRENT_SESSION_DATA=null;SESSION_ACTIONS=[];closeDeleteModal();workspace().style.display='none';q('session-home').style.display='block';setHomeMsg('Caso eliminato definitivamente. Per giocarlo di nuovo dovrà essere ricreato da zero.','ok');loadSessionList();}).catch(function(err){console.error(err);q('delete-session-msg').textContent='Eliminazione non riuscita: '+err.message;q('btn-confirm-delete').disabled=false;});}
+function setupSessionControls(){attachSessionRecorder();on(q('btn-new-session'),createSession);q('new-session-pg').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();createSession();}});on(q('btn-refresh-sessions'),loadSessionList);on(q('btn-back-sessions'),showDashboard);on(q('btn-delete-session'),openDeleteModal);on(q('btn-cancel-delete'),closeDeleteModal);q('delete-session-check').addEventListener('change',function(){q('btn-confirm-delete').disabled=!q('delete-session-check').checked;});on(q('btn-confirm-delete'),deleteCurrentSession);q('delete-session-modal').addEventListener('click',function(e){if(e.target===q('delete-session-modal'))closeDeleteModal();});document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden'&&CURRENT_SESSION&&!SESSION_READONLY)saveSessionNow();});window.addEventListener('pagehide',function(){if(CURRENT_SESSION&&!SESSION_READONLY)saveSessionNow();});}
+function setupFirebaseSessions(){setupSessionControls();workspace().style.display='none';q('session-home').style.display='block';var st=q('firebase-auth-status');try{if(typeof firebase==='undefined')throw new Error('SDK Firebase non caricato');if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);FB.app=firebase.app();FB.auth=firebase.auth();FB.db=firebase.firestore();FB.auth.onAuthStateChanged(function(user){if(user){FB.user=user;st.textContent=user.uid===NARRATOR_UID?'Firebase connesso · modalità Narratore':'Firebase connesso · sessione anonima attiva';st.className='session-status ok';loadSessionList();return;}FB.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(function(){return FB.auth.signInAnonymously();}).catch(function(err){console.error(err);st.textContent='Errore autenticazione Firebase: '+err.message;st.className='session-status bad';});});}catch(err){console.error(err);st.textContent='Firebase non disponibile: '+err.message;st.className='session-status bad';}}
+
+function boot(){var p=newPG('difensore');p.nome='Difensore 1';p.squadra='';STATE.party.push(p);UI.participantBox=el('div',{'class':'phase-outcome'});q('anagrafica').querySelector('.card-body').insertBefore(UI.participantBox,q('party-list'));setupPartyButtons();setupCaseDetermination();setupConditionGravity();setupPNG();renderParty();buildAllCases();syncFlowVisibility();}
+boot();
+setupFirebaseSessions();
+ 
 })(); 
  
 </script> 
